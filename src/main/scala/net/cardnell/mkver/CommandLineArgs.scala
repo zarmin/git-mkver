@@ -17,6 +17,7 @@ object CommandLineArgs {
   val format: Opts[Option[String]] = Opts.option[String]("format", short = "f", metavar = "string", help = "Format string for the version number").orNone
   val prefix: Opts[Boolean] = Opts.flag("tag-prefix", short = "t", help = "Include the tag prefix in the output").orFalse
   val preRelease: Opts[Boolean] = Opts.flag("pre-release", short = "p", help = "Include the tag prefix in the output").orFalse
+  val verbose: Opts[Boolean] = Opts.flag("verbose", short = "v", help = "Print to stderr how the next version is determined").orFalse
   val includeEnv: Opts[Boolean] = Opts.flag("include-env", short = "i", help = "Include environment variables").orFalse
 
   val nextOptions: Opts[NextOpts] = (format, preRelease, prefix).mapN(NextOpts.apply)
@@ -42,11 +43,11 @@ object CommandLineArgs {
 
   val configCommand: Command[AppOpts] = Command("config", header = "output final configuration to be used") { Opts(ConfigOpts) }
 
-  case class CommandLineOpts(configFile: Option[String], opts: AppOpts)
+  case class CommandLineOpts(configFile: Option[String], verbose: Boolean, opts: AppOpts)
 
   val commands: Opts[AppOpts] = Opts.subcommands(nextCommand, tagCommand, patchCommand, infoCommand, configCommand)
 
-  val commandLineOpts: Opts[CommandLineOpts] = (configFile, commands).mapN(CommandLineOpts.apply)
+  val commandLineOpts: Opts[CommandLineOpts] = (configFile, verbose, commands).mapN(CommandLineOpts.apply)
 
   val mkverCommand: Command[CommandLineOpts] = Command(
     name = s"git mkver",

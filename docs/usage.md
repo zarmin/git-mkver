@@ -117,6 +117,10 @@ the version number for that branch to `1.2.3`:
 All commands take a `-c <FILE>` or `--config <FILE>` option to set the config file to read. More details on the
 [Config Reference](config_reference) page.
 
+All commands also take a `-v` or `--verbose` flag which prints to stderr how the next version was determined
+(tags found, last version, commit messages matched, increments, overrides and existing tag collisions), e.g.
+`git mkver --verbose next`.
+
 ## Patching versions in files
 
 If you would like to patch version numbers in files prior to building and tagging then

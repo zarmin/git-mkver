@@ -14,6 +14,7 @@ object GitMock extends Mock[Git] {
   object FullLog extends Effect[Option[String], Nothing, String]
   object CommitInfoLog extends Effect[Unit, Nothing, String]
   object Tag extends Effect[(String, String), Nothing, Unit]
+  object AllTags extends Effect[Unit, Nothing, String]
   object CheckGitRepo extends Effect[Unit, Nothing, Unit]
 
   val compose: URLayer[Has[Proxy], Git] =
@@ -23,6 +24,7 @@ object GitMock extends Mock[Git] {
         def fullLog(fromRef: Option[String]) = proxy(FullLog, fromRef)
         def commitInfoLog() = proxy(CommitInfoLog)
         def tag(tag: String, tagMessage: String) = proxy(Tag, tag, tagMessage)
+        def allTags() = proxy(AllTags)
         def checkGitRepo() = proxy(CheckGitRepo)
       }
     }

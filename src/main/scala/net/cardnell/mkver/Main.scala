@@ -35,22 +35,22 @@ object Main extends App {
       config <- AppConfig.getRunConfig(opts.configFile, currentBranch)
       r <- opts.opts match {
         case nextOps@NextOpts(_, _, _) =>
-          runNext(nextOps, config, currentBranch)
+          runNext(nextOps, config, currentBranch, opts.verbose)
         case tagOpts@TagOpts(_) =>
-          runTag(tagOpts, config, currentBranch)
+          runTag(tagOpts, config, currentBranch, opts.verbose)
         case patchOpts@PatchOpts(_) =>
-          runPatch(patchOpts, config, currentBranch)
+          runPatch(patchOpts, config, currentBranch, opts.verbose)
         case infoOpts@InfoOpts(_, _) =>
-          runInfo(infoOpts, config, currentBranch)
+          runInfo(infoOpts, config, currentBranch, opts.verbose)
         case ConfigOpts =>
           runConfig(config)
       }
     } yield r
   }
 
-  def runNext(nextOpts: NextOpts, config: RunConfig, currentBranch: String): ZIO[Console with Git with Blocking, Throwable, Unit] = {
+  def runNext(nextOpts: NextOpts, config: RunConfig, currentBranch: String, verbose: Boolean): ZIO[Console with Git with Blocking, Throwable, Unit] = {
     for {
-      nextVersion <- getNextVersion(config, currentBranch, nextOpts.preRelease)
+      nextVersion <- getNextVersion(config, currentBranch, nextOpts.preRelease, verbose)
       next <- nextOpts.format.map { format =>
         Task.effect(Formatter(nextVersion, config, nextOpts.preRelease).format(format))
       }.getOrElse {
@@ -60,17 +60,17 @@ object Main extends App {
     } yield ()
   }
 
-  def runTag(tagOpts: TagOpts, config: RunConfig, currentBranch: String): ZIO[Git with Blocking, Throwable, Unit] = {
+  def runTag(tagOpts: TagOpts, config: RunConfig, currentBranch: String, verbose: Boolean): ZIO[Console with Git with Blocking, Throwable, Unit] = {
     for {
-      nextVersion <- getNextVersion(config, currentBranch, tagOpts.preRelease)
+      nextVersion <- getNextVersion(config, currentBranch, tagOpts.preRelease, verbose)
       tag <- formatVersion(config, nextVersion, formatAsTag = true, preRelease = tagOpts.preRelease)
       tagMessage = Formatter(nextVersion, config, tagOpts.preRelease).format(config.tagMessageFormat)
       _ <- Git.tag(tag, tagMessage) when (config.tag)
     } yield ()
   }
 
-  def runPatch(patchOpts: PatchOpts, config: RunConfig, currentBranch: String): ZIO[Console with Git with Blocking, Throwable, Unit] = {
-    getNextVersion(config, currentBranch, patchOpts.preRelease).flatMap { nextVersion =>
+  def runPatch(patchOpts: PatchOpts, config: RunConfig, currentBranch: String, verbose: Boolean): ZIO[Console with Git with Blocking, Throwable, Unit] = {
+    getNextVersion(config, currentBranch, patchOpts.preRelease, verbose).flatMap { nextVersion =>
       ZIO.foreach(config.patches) { patch =>
         ZIO.foreach(patch.replacements) { findReplace =>
           val regex = findReplace.find
@@ -95,9 +95,9 @@ object Main extends App {
     }.unit
   }
 
-  def runInfo(infoOpts: InfoOpts, config: RunConfig, currentBranch: String): RIO[Console with Git with Blocking, Unit] = {
+  def runInfo(infoOpts: InfoOpts, config: RunConfig, currentBranch: String, verbose: Boolean): RIO[Console with Git with Blocking, Unit] = {
     for {
-      nextVersion <- getNextVersion(config, currentBranch, infoOpts.preRelease)
+      nextVersion <- getNextVersion(config, currentBranch, infoOpts.preRelease, verbose)
       formatter = Formatter(nextVersion, config, infoOpts.preRelease)
       _ <- ZIO.foreach(formatter.formats) { format =>
         val result = formatter.format(format.format)

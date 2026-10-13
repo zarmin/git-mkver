@@ -11,6 +11,7 @@ object Git {
     def fullLog(fromRef: Option[String]): RIO[Blocking, String]
     def commitInfoLog(): RIO[Blocking, String]
     def tag(tag: String, tagMessage: String): RIO[Blocking, Unit]
+    def allTags(): RIO[Blocking, String]
     def checkGitRepo(): RIO[Blocking, Unit]
   }
 
@@ -46,6 +47,10 @@ object Git {
         exec(Array("git", "tag", "-a", "-m", tagMessage, tag), cwd).unit
       }
 
+      def allTags(): RIO[Blocking, String] = {
+        exec(Array("git", "tag", "--list"), cwd).map(_.stdout)
+      }
+
       def checkGitRepo(): RIO[Blocking, Unit] = {
         exec(s"git --no-pager show", cwd).flatMap { output =>
           Task.fail(MkVerException(output.stdout)).when(output.exitCode != 0)
@@ -66,6 +71,9 @@ object Git {
 
   def tag(tag: String, tagMessage: String): RIO[Git with Blocking, Unit] =
     ZIO.accessM(_.get.tag(tag, tagMessage))
+
+  def allTags(): RIO[Git with Blocking, String] =
+    ZIO.accessM(_.get.allTags())
 
   def checkGitRepo(): RIO[Git with Blocking, Unit] =
     ZIO.accessM(_.get.checkGitRepo())
