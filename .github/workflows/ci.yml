@@ -6,6 +6,9 @@ on:
     branches:
       - master
       - patch-*
+    # Version tags also publish a GitHub release
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   pull_request:
     branches:
       - master
@@ -22,6 +25,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      # A tag checkout is a detached HEAD, use a release branch so mkver builds the plain tag version
+      - name: Use release branch for tag builds
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: git checkout -B "release/${GITHUB_REF_NAME#v}"
       # Install the .NET Core workload
       - name: Install .NET Core
         uses: actions/setup-dotnet@v3
@@ -52,6 +60,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      # A tag checkout is a detached HEAD, use a release branch so mkver builds the plain tag version
+      - name: Use release branch for tag builds
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: git checkout -B "release/${GITHUB_REF_NAME#v}"
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -79,6 +92,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      # A tag checkout is a detached HEAD, use a release branch so mkver builds the plain tag version
+      - name: Use release branch for tag builds
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: git checkout -B "release/${GITHUB_REF_NAME#v}"
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -99,6 +117,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      # A tag checkout is a detached HEAD, use a release branch so mkver builds the plain tag version
+      - name: Use release branch for tag builds
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: git checkout -B "release/${GITHUB_REF_NAME#v}"
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -119,3 +142,18 @@ jobs:
         with:
           name: git-mkver-darwin
           path: target/git-mkver-darwin-*.tar.gz
+  release:
+    if: github.ref_type == 'tag'
+    needs: [build-on-windows, build-on-linux, build-universal, build-on-mac-x64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes
